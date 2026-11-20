@@ -1,6 +1,6 @@
 ---
 name: finetune-inkling-2-small
-description: Fine-tune Thinking Machines' Inkling 2 Small (594B-A17B MoE) with LoRA on Tinker and ship it. Use when the user wants to fine-tune, evaluate, merge, publish or serve thinkingmachines/Inkling-2-Small. Covers the H200K tokenizer and tml_v0 rendering at a fixed reasoning effort, dataset validation and sizing, the adapter-shape decision (attention+unembed LoRA that merges exactly into the released NVFP4/MXFP8 checkpoint vs all-linear LoRA that stays on Tinker), learning rate and cost, behaviour probes and a self-distilled conversational slice, moving a 64K adapter to the 256K variant, the exact merge, token-level merge verification, SGLang/vLLM serving and honest evaluation.
+description: Fine-tune Thinking Machines' Inkling 2 Small (594B-A17B MoE) with LoRA on Tinker, then use it on Tinker, self-host it or publish it. Use when the user wants to fine-tune, evaluate, merge, publish or serve thinkingmachines/Inkling-2-Small. Covers the H200K tokenizer and tml_v0 rendering at a fixed reasoning effort, dataset validation and sizing, the adapter-shape decision (attention+unembed LoRA that merges exactly into the released NVFP4/MXFP8 checkpoint vs all-linear LoRA that stays on Tinker), learning rate and cost, behaviour probes and a self-distilled conversational slice, moving a 64K adapter to the 256K variant, the exact merge, token-level merge verification, SGLang/vLLM serving and honest evaluation.
 license: MIT
 compatibility: Python 3.11+, tinker-cookbook>=0.6.0 and tml-renderers>=0.4.0, a Tinker API key, optionally Weights & Biases and Hugging Face tokens. Dataset steps run offline; training, sampling, probes and transplants call Tinker and cost money. The merge needs ~790 GB of disk (or Modal); serving needs >=500 GB of GPU memory.
 metadata:
@@ -9,11 +9,12 @@ metadata:
   source: https://github.com/drost-ai/finetune-inkling-2-small
 ---
 
-# Fine-tune Inkling 2 Small on Tinker, and ship it
+# Fine-tune Inkling 2 Small on Tinker
 
 You are helping someone fine-tune `thinkingmachines/Inkling-2-Small` with a LoRA on
-[Tinker](https://thinkingmachines.ai/tinker) and, usually, release it as open
-weights. This skill is the recipe that produced Tess-4.5-594B-A17B (88.2% on
+[Tinker](https://thinkingmachines.ai/tinker), then use it the way they choose: on
+Tinker, on their own GPUs, or published. Many users keep their model private; never
+upload anything unless they ask. This skill is the recipe that produced Tess-4.5-594B-A17B (88.2% on
 SWE-Bench Pro v2 Hard at xhigh). It starts from a dataset; for turning coding-agent
 transcripts into one, use the companion skill
 [tinker-ai-skill](https://github.com/drost-ai/tinker-ai-skill), whose rows this skill
@@ -34,8 +35,9 @@ needs judgement.
    epoch. Run every script's offline mode first and **get the user's yes on the
    printed estimate before anything that calls Tinker.**
 4. **Decide two things with the user now**, because they change the run:
-   - Will they release open weights or self-host? Then the adapter must be
-     `release` (attention + unembed). Tinker-only use can take `full`.
+   - Will they ever need the weights outside Tinker (self-hosting, or publishing)?
+     Then the adapter must be `release` (attention + unembed). Tinker-only use can
+     take `full`.
      `references/adapter-shape.md`.
    - Which system prompt, tool set and reasoning effort will the model be served
      with? Training rows must carry exactly those.
@@ -118,7 +120,9 @@ need this. Point any OpenAI- or Anthropic-compatible client at Tinker with the
 printed sampler path as the model name, `reasoning_effort` set, compaction below the
 cap. `references/long-context.md`.
 
-### Step 7. Export and merge exactly (open weights)
+### Step 7. Export and merge exactly (to self-host or publish)
+
+Skip steps 7-9 if the model stays on Tinker.
 
 ```
 tinker checkpoint download tinker://<run-id>:train:0/weights/final -o ./adapters
@@ -139,8 +143,8 @@ alone with `tinker checkpoint push-hf`. `references/export-merge-serve.md`.
 Serve `./merged` (step 9), then score the same validation rows through Tinker and
 through the server with `scripts/merge_check.py` (render, tinker, sglang, compare),
 and probe the server with `probe.py --base-url`. The merged model must sit at kernel
-noise from the Tinker adapter and clearly away from the base. Only then upload
-(`hf upload`, private first).
+noise from the Tinker adapter and clearly away from the base. Only then serve it,
+or, if the user wants it published, upload it (`hf upload`, private first).
 
 ### Step 9. Serve
 
@@ -161,12 +165,13 @@ numbers (card and yours). `references/evaluation.md`.
 
 - Resolve the renderer from the model name and assert the H200K tokenizer. Never
   reuse rows chunked or rendered for another model.
-- Decide `release` vs `full` before training. A `full` adapter cannot become open
-  weights without a lossy requantization of the experts.
+- Decide `release` vs `full` before training. A `full` adapter cannot leave Tinker
+  without a lossy requantization of the experts.
 - Train with the exact system prompt, full tool set and effort you will serve with.
 - Probe the base, then every checkpoint, with the real tool set.
 - Train at 64K, transplant to 256K; never point an agent at the 64K cap.
-- Prove the merge token by token before publishing; publish private first.
+- Prove the merge token by token before serving or publishing it. Upload only when
+  the user asks, and private first.
 - Sweep reasoning effort at evaluation and benchmark the base on your harness.
 - Never commit `.env`, `data/`, `runs/`, adapters or merged weights; the
   `.gitignore` covers them.

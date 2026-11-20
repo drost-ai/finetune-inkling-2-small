@@ -1,6 +1,6 @@
 # finetune-inkling-2-small
 
-**Fine-tune Inkling 2 Small on Tinker and ship it as open weights. The recipe behind Tess-4.5-594B-A17B.**
+**Fine-tune Inkling 2 Small on Tinker, then use it there, self-host it, or publish it. The recipe behind Tess-4.5-594B-A17B.**
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Agent Skill](https://img.shields.io/badge/Agent%20Skill-agentskills.io-black)](https://agentskills.io)
@@ -9,8 +9,9 @@
 
 Inkling 2 Small is a 594B-parameter Mixture-of-Experts model with 17B active
 parameters, a million-token window and effort-controlled reasoning. You can
-fine-tune it on Tinker in an afternoon. Turning that fine-tune into a model people
-can download, serve and trust has traps that cost us real runs:
+fine-tune it on Tinker in an afternoon. Getting a fine-tune that behaves well, works
+at long context, and runs outside Tinker when you want it to has traps that cost us
+real runs:
 - a tokenizer that silently changed,
 - experts stored in 4-bit that a normal LoRA cannot be merged into,
 - a 64K cap that counts output tokens,
@@ -18,8 +19,9 @@ can download, serve and trust has traps that cost us real runs:
 
 This skill hands your coding agent the whole path, with each of those decisions
 made explicit and every step scripted. Install it and say *"fine-tune Inkling 2
-Small on data/rows.jsonl and get it ready to release"*. The agent takes it from
-there, and stops before anything that costs money.
+Small on data/rows.jsonl"*. The agent takes it from there, and stops before anything
+that costs money. Keep the model private on Tinker, serve it on your own GPUs, or
+publish it: the skill covers each, and nothing is uploaded unless you ask.
 
 ## Proven on a release
 
